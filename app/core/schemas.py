@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from typing import Optional
+from app.api.v1.endpoints.auth import Role
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 class UserCreate(BaseModel):
     name: str
@@ -24,3 +26,29 @@ class Token(BaseModel):
 class LoginInput(BaseModel):
     username: str
     password: str
+
+class UserOut(BaseModel):
+    id: int
+    name: str
+    username: str
+    email: EmailStr
+    role: str
+    token_balance: int
+    ranking_rate: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserCreateAdmin(BaseModel):
+    name: str
+    username: str
+    email: EmailStr
+    password: str
+    role: Role = Role.PLAYER
+    token_balance: int = 0
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    token_balance: Optional[int] = None
+    ranking_rate: Optional[int] = None
