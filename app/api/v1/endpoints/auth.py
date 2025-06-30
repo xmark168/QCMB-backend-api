@@ -1,19 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from ....core.database import get_db
 from ....core.models import User
-from ....core.schemas import LoginInput, UserCreate, UserRead, Token
+from ....core.schemas import LoginInput, UserRole, UserCreate, UserRead, Token
 from ....core.security import (
     get_password_hash, verify_password,
     create_access_token, decode_access_token
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
-# ---------- Đăng ký ----------
+bearer_scheme = HTTPBearer(
+    scheme_name="JWTBearer",
+    description="Paste the JWT you received from /auth/login",
+    bearerFormat="JWT"
+)# ---------- Đăng ký ----------
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     for field in ("username", "email"):
@@ -43,8 +46,9 @@ async def login(data: LoginInput,
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
     return {"access_token": token, "token_type": "bearer"}
 # ---------- Lấy người dùng hiện tại ----------
-async def get_current_user(token: str = Depends(oauth2_scheme),
+async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
                            db: AsyncSession = Depends(get_db)) -> User:
+    token: str = creds.credentials
     payload = decode_access_token(token)
     if payload is None:
          raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token invalid or expired")
@@ -60,13 +64,10 @@ def admin_required(current: User = Depends(get_current_user)):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin only")
     return current
 # authrorization decorator
-
-class Role(str, Enum):
-    PLAYER = "PLAYER"
-    ADMIN  = "ADMIN"
-def require_roles(*roles: Role):
+def require_roles(*roles: UserRole):
     def checker(current_user=Depends(get_current_user)):
         if current_user.role not in roles:
+            print(f"User {current_user.username} with role {current_user.role} tried to access a protected route {roles}")
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 "Bạn không đủ quyền truy cập",

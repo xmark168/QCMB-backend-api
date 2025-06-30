@@ -1,11 +1,10 @@
+from app.core.enums import UserRole
 from sqlalchemy import Column, BigInteger, DateTime, String, Text, Integer, Enum
 from sqlalchemy.sql import func
 from enum import Enum as PyEnum
 from .database import Base
 
-class UserRole(PyEnum):
-    PLAYER = "PLAYER"
-    ADMIN  = "ADMIN"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -21,3 +20,4 @@ class User(Base):
     created_at    = Column(DateTime(timezone=True),
                          server_default=func.now(),
                          onupdate=func.now())
+    

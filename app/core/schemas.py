@@ -1,6 +1,7 @@
 from typing import Optional
-from app.api.v1.endpoints.auth import Role
+from app.core.enums import UserRole
 from pydantic import BaseModel, ConfigDict, EmailStr
+from enum import Enum
 
 class UserCreate(BaseModel):
     name: str
@@ -43,7 +44,7 @@ class UserCreateAdmin(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: Role = Role.PLAYER
+    role: UserRole = UserRole.PLAYER
     token_balance: int = 0
 
 class UserUpdate(BaseModel):
@@ -52,3 +53,4 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     token_balance: Optional[int] = None
     ranking_rate: Optional[int] = None
+

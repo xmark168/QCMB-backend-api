@@ -1,7 +1,7 @@
-from app.api.v1.endpoints.auth import Role, get_current_user, require_roles
+from app.api.v1.endpoints.auth import get_current_user, require_roles
 from app.core.database import get_db
 from app.core.models import User
-from app.core.schemas import UserCreateAdmin, UserOut, UserUpdate
+from app.core.schemas import UserCreateAdmin, UserOut, UserUpdate, UserRole
 from app.core.security import get_password_hash
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.params import Query
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    _: User = Depends(require_roles(Role.ADMIN)),
+    _: User = Depends(require_roles(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
 ):
     users = (await db.execute(select(User).offset(skip).limit(limit))).scalars().all()
@@ -25,7 +25,7 @@ async def list_users(
 @router.post("", response_model=UserOut, status_code=201)
 async def create_user(
     payload: UserCreateAdmin,
-    _: User = Depends(require_roles(Role.ADMIN)),
+    _: User = Depends(require_roles(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
 ):
      # kiểm tra trùng username / email
@@ -57,7 +57,7 @@ async def retrieve_user(
    user = await db.get(User, user_id)
    if not user:
       raise HTTPException(404, "User not found")
-   if current.role != Role.ADMIN and current.id != user.id:
+   if current.role != UserRole.ADMIN and current.id != user.id:
         raise HTTPException(403, "Forbidden")
    return user
 
@@ -72,7 +72,7 @@ async def update_user(
    user = await db.get(User, user_id)
    if not user:
         raise HTTPException(404, "User not found")
-   if current.role != Role.ADMIN and current.id != user.id:
+   if current.role != UserRole.ADMIN and current.id != user.id:
         raise HTTPException(403, "Forbidden")
    if payload.password:
         payload.password = get_password_hash(payload.password)
@@ -86,7 +86,7 @@ async def update_user(
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(
     user_id: int,
-    _: User = Depends(require_roles(Role.ADMIN)),
+    _: User = Depends(require_roles(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(delete(User).where(User.id == user_id))

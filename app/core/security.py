@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from fastapi.security import HTTPBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from typing import Optional
@@ -7,6 +8,10 @@ SECRET_KEY = "CHANGE_ME_LONG_RANDOM"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+bearer_scheme = HTTPBearer(
+    scheme_name="BearerAuth",         
+    bearerFormat="JWT"                
+)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password: str) -> str:

@@ -9,7 +9,9 @@ if config.config_file_name:
 # import models để Alembic thấy bảng
 from app.core import models           # noqa: F401 (side-effect)
 from app.core.models import Base
-target_metadata = Base.metadata
+
+target_metadata =[ Base.metadata  ] 
+
 
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
