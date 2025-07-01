@@ -65,7 +65,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+Scripts
 # FastAPI specific
 instance/
 *.db
