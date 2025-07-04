@@ -7,7 +7,7 @@ if config.config_file_name:
     fileConfig(config.config_file_name)
 
 # import models để Alembic thấy bảng
-from app.core import models           # noqa: F401 (side-effect)
+from app.core import models       
 from app.core.models import Base
 
 target_metadata =[ Base.metadata  ] 
