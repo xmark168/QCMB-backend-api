@@ -79,9 +79,9 @@ class QuestionBase(BaseModel):
     content: str
     difficulty: int
     correct_answer: str
-    Wrong_answer_1: Optional[str] = None
-    Wrong_answer_2: Optional[str] = None
-    Wrong_answer_3: Optional[str] = None
+    wrong_answer_1: Optional[str] = None
+    wrong_answer_2: Optional[str] = None
+    wrong_answer_3: Optional[str] = None
 
 class QuestionCreate(QuestionBase):
     pass
@@ -90,9 +90,9 @@ class QuestionUpdate(BaseModel):
     content: Optional[str] = None
     difficulty: Optional[int] = None
     correct_answer: Optional[str] = None
-    Wrong_answer_1: Optional[str] = None
-    Wrong_answer_2: Optional[str] = None
-    Wrong_answer_3: Optional[str] = None
+    wrong_answer_1: Optional[str] = None
+    wrong_answer_2: Optional[str] = None
+    wrong_answer_3: Optional[str] = None
 
 class QuestionOut(QuestionBase):
     id: UUID

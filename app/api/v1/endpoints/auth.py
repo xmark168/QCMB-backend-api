@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy import Enum
+from sqlalchemy import Enum, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from ....core.database import get_db
@@ -39,11 +39,23 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
 @router.post("/login", response_model=Token)
 async def login(data: LoginInput,
                 db: AsyncSession = Depends(get_db)):
-    user = await db.scalar(select(User).filter_by(username=data.username))
-    if not user or not verify_password(data.password, user.password):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
+    stmt = select(User).where(
+        or_(User.username == data.username, 
+            User.email == data.username)
+    )
 
-    token = create_access_token({"sub": str(user.id), "role": user.role.value})
+    user = await db.scalar(stmt)
+
+    if not user or not verify_password(data.password, user.password):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, 
+            detail="Invalid credentials"
+        )
+
+    token = create_access_token(
+        {"sub": str(user.id), "role": user.role.value}
+    )
+    
     return {"access_token": token, "token_type": "bearer"}
 # ---------- Lấy người dùng hiện tại ----------
 async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),

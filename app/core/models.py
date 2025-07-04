@@ -21,6 +21,7 @@ class User(Base):
     email         = Column(String(255), unique=True, nullable=False, index=True)
     password      = Column(Text,  nullable=False)         
     role          = Column(Enum(UserRole), nullable=False, default=UserRole.PLAYER)
+    avatar_url    = Column(Text, nullable=True, default=None)
     token_balance = Column(Integer, nullable=False, default=0)
     ranking_rate  = Column(Integer, nullable=False, default=0)
     created_at    = Column(DateTime(timezone=True),
@@ -59,3 +60,23 @@ class Question(Base):
     created_at      = Column(DateTime, default=datetime.utcnow)
 
     topic           = relationship("Topic", back_populates="questions")
+
+class PaymentOrder(Base):
+    __tablename__ = "payment_orders"
+
+    id            = Column(UUID(as_uuid=True), primary_key=True,
+                           default=default_uuid, index=True, unique=True)
+    user_id       = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    order_code    = Column(BigInteger, nullable=False)
+    plan_id       = Column(String)
+    amount        = Column(Integer, nullable=False)
+    status        = Column(String, nullable=False, default="PENDING")
+    token_amount  = Column(Integer, nullable=False, default=0)
+    payment_url   = Column(Text)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at    = Column(DateTime(timezone=True), onupdate=func.now())
+    expired_at    = Column(DateTime(timezone=True))
+    payment_link_id = Column(Text)
+    transaction_id = Column(Text)
+
+    user          = relationship("User")
