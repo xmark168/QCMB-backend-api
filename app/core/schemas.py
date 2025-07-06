@@ -19,7 +19,7 @@ class UserRead(BaseModel):
     email: EmailStr
     role: str
     token_balance: int
-    ranking_rate: int
+    score: int
     class Config:
         orm_mode = True
 
@@ -38,7 +38,7 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
     token_balance: int
-    ranking_rate: int
+    score: int
 
     model_config = ConfigDict(from_attributes=True)
 

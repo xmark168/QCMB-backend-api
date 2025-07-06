@@ -23,7 +23,7 @@ class User(Base):
     role          = Column(Enum(UserRole), nullable=False, default=UserRole.PLAYER)
     avatar_url    = Column(Text, nullable=True, default=None)
     token_balance = Column(Integer, nullable=False, default=0)
-    ranking_rate  = Column(Integer, nullable=False, default=0)
+    score         = Column(BigInteger, nullable=True, default=0)
     created_at    = Column(DateTime(timezone=True),
                          server_default=func.now(),
                          onupdate=func.now())

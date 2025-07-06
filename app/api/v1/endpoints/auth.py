@@ -28,7 +28,8 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
         name=user_in.name,
         username=user_in.username,
         email=user_in.email,
-        password=get_password_hash(user_in.password)
+        password=get_password_hash(user_in.password),
+        token_balance=100
     )
     db.add(user)
     await db.commit()
@@ -58,6 +59,7 @@ async def login(data: LoginInput,
     
     return {"access_token": token, "token_type": "bearer"}
 # ---------- Lấy người dùng hiện tại ----------
+@router.get("/currentUser", response_model=UserRead)
 async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
                            db: AsyncSession = Depends(get_db)) -> User:
     token: str = creds.credentials
