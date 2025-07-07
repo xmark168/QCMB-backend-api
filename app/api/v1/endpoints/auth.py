@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from ....core.database import get_db
 from ....core.models import User
-from ....core.schemas import LoginInput, UserRole, UserCreate, UserRead, Token
+from ....core.schemas import LoginInput, RegisterResponse, UserRole, UserCreate, UserRead, Token
 from ....core.security import (
     get_password_hash, verify_password,
     create_access_token, decode_access_token
@@ -17,7 +17,7 @@ bearer_scheme = HTTPBearer(
     description="Paste the JWT you received from /auth/login",
     bearerFormat="JWT"
 )# ---------- Đăng ký ----------
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     for field in ("username", "email"):
         exist = await db.scalar(select(User).filter_by(**{field: getattr(user_in, field)}))
@@ -34,6 +34,13 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    token = create_access_token(
+        {
+            "sub": str(user.id),
+            "role": user.role.value
+        }
+    )
 
     return user
 # ---------- Đăng nhập ----------

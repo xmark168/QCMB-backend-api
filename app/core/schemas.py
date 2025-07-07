@@ -32,6 +32,12 @@ class LoginInput(BaseModel):
     username: str
     password: str
 
+
+class RegisterResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
 class UserOut(BaseModel):
     id: int
     name: str
