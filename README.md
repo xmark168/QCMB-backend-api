@@ -1,4 +1,4 @@
-.\.venv\Scripts\Activate.ps1 
+.\.venv\Scripts\Activate.ps1
 
 alembic revision --autogenerate -m "update role enum in user table"
 alembic upgrade head

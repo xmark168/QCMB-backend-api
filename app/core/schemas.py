@@ -17,9 +17,10 @@ class UserRead(BaseModel):
     name: str
     username: str
     email: EmailStr
+    avatar_url: Optional[str] = None
     role: str
     token_balance: int
-    score: int
+    score: Optional[int] = 0
     class Config:
         orm_mode = True
 
@@ -37,6 +38,7 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     role: str
+    avatar_url: str
     token_balance: int
     score: int
 
