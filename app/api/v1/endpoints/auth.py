@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy import Enum, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from app.core.email_utils import send_password_reset_email
 from ....core.database import get_db
 from ....core.models import User
-from ....core.schemas import LoginInput, RegisterResponse, UserRole, UserCreate, UserRead, Token
+from ....core.schemas import ForgotPasswordRequest, ForgotPasswordResponse, GenericMessage, LoginInput, RegisterResponse, ResetWithVerifiedToken, UserRole, UserCreate, UserRead, Token, VerifyOtpInput, VerifyOtpResponse
 from ....core.security import (
-    get_password_hash, verify_password,
-    create_access_token, decode_access_token
+    generate_raw_otp, hash_otp,
+    create_otp_token, create_verified_token, decode_token,
+    get_password_hash, verify_password, create_access_token, decode_access_token
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -42,9 +45,13 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
         }
     )
 
-    return user
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user
+    }
 # ---------- Đăng nhập ----------
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=RegisterResponse)
 async def login(data: LoginInput,
                 db: AsyncSession = Depends(get_db)):
     stmt = select(User).where(
@@ -64,7 +71,11 @@ async def login(data: LoginInput,
         {"sub": str(user.id), "role": user.role.value}
     )
     
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user
+    }
 # ---------- Lấy người dùng hiện tại ----------
 @router.get("/currentUser", response_model=UserRead)
 async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -95,3 +106,63 @@ def require_roles(*roles: UserRole):
             )
         return current_user
     return checker
+
+# ---------- gửi OTP ----------
+@router.post("/forgot-password", response_model=ForgotPasswordResponse, status_code=status.HTTP_200_OK)
+async def forgot_password(
+    data: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await db.scalar(select(User).where(User.email == data.email))
+    # Trả về giống nhau để tránh dò email (OWASP) :contentReference[oaicite:5]{index=5}
+    if user:
+        raw_otp = generate_raw_otp()
+        otp_hash = hash_otp(raw_otp)
+        otp_token = create_otp_token(user.id, otp_hash)
+        background_tasks.add_task(send_password_reset_email, user.email, raw_otp)
+        return {
+            "detail": "OTP đã được gửi.",
+            "otp_token": otp_token
+        }
+    
+    return {
+        "detail": "Nếu email không tồn tại",
+        "otp_token": None
+    }
+
+# ---------- Xác thực OTP ----------
+@router.post("/verify-otp", response_model=VerifyOtpResponse, status_code=status.HTTP_200_OK)
+async def verify_otp(data: VerifyOtpInput):
+    payload = decode_token(data.otp_token)
+    if payload.get("scope") != "password_reset_otp":
+        raise HTTPException(400, "Sai scope token")
+    
+    if hash_otp(data.otp) != payload["otp_hash"]:
+        raise HTTPException(400, "OTP không hợp lệ")
+    
+    verified_token = create_verified_token(int(payload["sub"]))
+    return {
+        "detail": "OTP xác thực thành công",
+        "verified_token": verified_token
+    }
+
+# ---------- Đặt lại mật khẩu ----------
+@router.post("/reset-password", response_model=GenericMessage, status_code=status.HTTP_200_OK)
+async def reset_password(
+    data: ResetWithVerifiedToken,
+    db: AsyncSession = Depends(get_db)
+):
+    payload = decode_token(data.verified_token)
+    if payload.get("scope") != "otp_verified":
+        raise HTTPException(400, "Token không đúng giai đoạn")
+    
+    user = await db.scalar(select(User).where(User.id == int(payload["sub"]), User.email == data.email))
+    if not user:
+        raise HTTPException(400, "Người dùng không tồn tại hoặc email không khớp")
+    
+    user.password = get_password_hash(data.new_password)
+    await db.commit()
+    return {
+        "detail": "Đổi mật khẩu thành công"
+    }

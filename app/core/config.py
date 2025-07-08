@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, AnyHttpUrl, PostgresDsn
+from pydantic import EmailStr, Field, AnyHttpUrl, PostgresDsn
 from functools import lru_cache
 from typing_extensions import Self
 
@@ -12,6 +12,17 @@ class Settings(BaseSettings):
     db_url: PostgresDsn = Field(..., alias="DATABASE_URL")
     secret_key: str     = Field(..., alias="SECRET_KEY")
     algorithm: str      = Field("HS256", alias="ALGORITHM")
+
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "ducdatcuong@gmail.com"
+    SMTP_PASSWORD: str = "mfkcncruqgfisbas"
+
+    EMAIL_FROM: EmailStr = "ducdatcuong@gmail.com"   # <- thêm dòng này
+    EMAIL_FROM_NAME: str = "Quiz Game Support"        # (tuỳ chọn)
+    
+    OTP_TTL_MIN: int = 10          #  ←  thêm dòng này khớp code email_utils
+    VERIFIED_TTL_MIN: int = 5
 
    
     class Config:
