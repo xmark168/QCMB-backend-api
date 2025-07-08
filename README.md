@@ -18,3 +18,12 @@ apiService -> model -> request -> response
 #91C8E4 -> xanh nhạt
 #749BC2 -> xanh trung bình
 #4682A9 -> xanh đậm
+
+<!-- cài thêm thư viện -->
+pip install aiosmtplib
+
+finish() chỉ đóng Activity hiện tại và quay về Activity trước đó trong stack. Ví dụ:
+Activity Stack: [MainActivity] -> [LoginActivity] -> [ForgotPasswordActivity]
+                                                            ↑ finish() ở đây
+Kết quả:       [MainActivity] -> [LoginActivity] 
+                                        ↑ quay về đây

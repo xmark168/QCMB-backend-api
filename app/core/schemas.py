@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 from app.core.enums import UserRole
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from enum import Enum
 from uuid import UUID
+
 
 # -------- User --------
 class UserCreate(BaseModel):
@@ -32,6 +33,12 @@ class LoginInput(BaseModel):
     username: str
     password: str
 
+
+class RegisterResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
 class UserOut(BaseModel):
     id: int
     name: str
@@ -58,6 +65,30 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     token_balance: Optional[int] = None
     ranking_rate: Optional[int] = None
+
+# -------- Forgot password --------
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class VerifyOtpInput(BaseModel):
+    email: EmailStr
+    otp: Annotated[str, Field(min_length=6, max_length=6)]
+    otp_token: str
+
+class ResetWithVerifiedToken(BaseModel):
+    email: EmailStr
+    verified_token: str
+    new_password: str
+
+class GenericMessage(BaseModel):
+    detail: str
+
+class ForgotPasswordResponse(GenericMessage):
+    otp_token: Optional[str] = None
+
+
+class VerifyOtpResponse(BaseModel):
+    verified_token: str
 
 # -------- Topic --------
 class TopicBase(BaseModel):
