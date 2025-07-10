@@ -80,3 +80,21 @@ class PaymentOrder(Base):
     transaction_id = Column(Text)
 
     user          = relationship("User")
+
+    
+class Lobby(Base):
+ __tablename__ = "lobbies"
+
+ id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
+ name = Column(String(100), nullable=False) 
+ code = Column(String(20), unique=True, nullable=False)
+ host_user_id = Column(UUID(as_uuid=True), nullable=False)
+ topic_id = Column(UUID(as_uuid=True), ForeignKey("topics.id", ondelete="SET NULL"))
+ status = Column(String(50), default="waiting") # waiting, in_progress, completed 
+ max_items_per_player = Column(Integer, default=5)
+ initial_hand_size = Column(Integer, default=3)
+ match_time_sec = Column(Integer, default=300)
+ player_count_limit = Column(Integer, default=0) # ✅ Thêm số người chơi
+ started_at = Column(DateTime, nullable=True)
+ ended_at = Column(DateTime, nullable=True)
+ created_at = Column(DateTime, default=datetime.utcnow)
