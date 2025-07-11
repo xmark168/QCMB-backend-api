@@ -190,6 +190,8 @@ STORE_ITEMS = {
     2: {"name": "Reverse", "price": 60, "description": "Đảo ngược thứ tự lượt chơi", "effect_type": "REVERSE_ORDER"},
     3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
     4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
+
+    
 }
 class LobbyCreate(BaseModel):
     name: str
