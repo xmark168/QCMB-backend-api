@@ -125,11 +125,11 @@ class QuestionUpdate(BaseModel):
     wrong_answer_1: Optional[str] = None
     wrong_answer_2: Optional[str] = None
     wrong_answer_3: Optional[str] = None
+from pydantic import ConfigDict
 
 class QuestionOut(QuestionBase):
     id: UUID
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
