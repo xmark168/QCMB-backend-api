@@ -186,12 +186,18 @@ class PurchaseResponse(BaseModel):
 
 # Hardcode store items
 STORE_ITEMS = {
+    -1: {"name": "Items", "price": 0, "description": "", "effect_type": "HEADER_ITEMS"},
+
     1: {"name": "Skip Turn", "price": 50, "description": "Bỏ lượt của đối thủ hiện tại", "effect_type": "SKIP_TURN"},
     2: {"name": "Reverse", "price": 60, "description": "Đảo ngược thứ tự lượt chơi", "effect_type": "REVERSE_ORDER"},
     3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
     4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
 
+    -2: {"name": "Gói Nạp Token", "price": 0, "description": "", "effect_type": "HEADER_PACKAGES"},
     
+    1001: {"name": "Gói 1,000 Token", "price": 100_000, "description": "Nạp 1.000 token", "effect_type": "TOKEN_PACKAGE_1000"},
+    1002: {"name": "Gói 5,000 Token", "price": 450_000, "description": "Nạp 5.000 token", "effect_type": "TOKEN_PACKAGE_5000"},
+    1003: {"name": "Gói 10,000 Token", "price": 800_000, "description": "Nạp 10.000 token", "effect_type": "TOKEN_PACKAGE_10000"},
 }
 class LobbyCreate(BaseModel):
     name: str
