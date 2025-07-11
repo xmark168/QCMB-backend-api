@@ -39,18 +39,17 @@ class RegisterResponse(BaseModel):
     token_type: str = "bearer"
     user: UserRead
 
+from pydantic import BaseModel, ConfigDict
+
 class UserOut(BaseModel):
     id: int
     name: str
     username: str
-    email: EmailStr
+    email: str
     role: str
-    avatar_url: str
-    token_balance: int
-    score: int
+    token_balance: float
 
     model_config = ConfigDict(from_attributes=True)
-
 class UserCreateAdmin(BaseModel):
     name: str
     username: str
