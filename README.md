@@ -1,5 +1,6 @@
 .\.venv\Scripts\Activate.ps1
 
+xóa bảng alembic_version trong postgresql
 alembic revision --autogenerate -m "update role enum in user table"
 alembic upgrade head
 
