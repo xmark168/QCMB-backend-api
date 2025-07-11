@@ -27,6 +27,8 @@ class User(Base):
     created_at    = Column(DateTime(timezone=True),
                          server_default=func.now(),
                          onupdate=func.now())
+    
+    inventory     = relationship("Inventory", back_populates="user", cascade="all, delete")
 
 class Topic(Base):
     __tablename__ = "topics"
@@ -60,6 +62,39 @@ class Question(Base):
     created_at      = Column(DateTime, default=datetime.utcnow)
 
     topic           = relationship("Topic", back_populates="questions")
+
+class Card(Base):
+    __tablename__ = "cards"
+
+    id          = Column(UUID(as_uuid=True), primary_key=True,
+                        default=default_uuid, index=True, unique=True)
+    type        = Column(String(50), nullable=True)
+    question_id = Column(UUID(as_uuid=True),
+                        ForeignKey("questions.id", ondelete="CASCADE"),
+                        nullable=True)
+    title       = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationship
+    question = relationship(
+        "Question",
+        cascade="all, delete",
+    )
+
+class Inventory(Base):
+    __tablename__  = "inventories"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True,
+                        default=default_uuid, index=True, unique=True)
+    user_id        = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    card_id        = Column(UUID(as_uuid=True), ForeignKey("cards.id", ondelete="CASCADE"), nullable=True)
+    quantity       = Column(Integer, nullable=True, default=0)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationship
+    user           = relationship("User", back_populates="inventory")
+    card           = relationship("Card")
 
 class PaymentOrder(Base):
     __tablename__ = "payment_orders"
