@@ -115,7 +115,7 @@ class TopicUpdate(TopicBase):
 
 class TopicOut(TopicBase):
     id: UUID
-    created_at: datetime
+    created_at: Optional[datetime]
     model_config = ConfigDict(from_attributes=True)
 
 # -------- Question --------
@@ -191,3 +191,10 @@ STORE_ITEMS = {
     3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
     4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
 }
+class LobbyCreate(BaseModel):
+    name: str
+    topic_id: UUID
+    max_items_per_player: Optional[int] = 5
+    initial_hand_size: Optional[int] = 3
+    match_time_sec: Optional[int] = 300
+    player_count_limit: Optional[int] = 2

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from sqlalchemy import select
 
-from app.api.v1.endpoints.auth import require_roles
+from app.api.v1.endpoints.auth import require_roles,get_current_user
 from app.core.database import get_db
 from app.core.enums import UserRole
 from app.core.schemas import TopicCreate, TopicOut, TopicUpdate
@@ -17,9 +17,9 @@ router = APIRouter(prefix="/topics", tags=["topics"])
 async def list_topics(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    _: User = Depends(require_roles(UserRole.ADMIN)),
+    _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+): 
     result = await db.execute(select(Topic).offset(skip).limit(limit))
     return result.scalars().all()
 
