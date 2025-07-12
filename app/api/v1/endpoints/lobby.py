@@ -33,9 +33,22 @@ async def create_lobby(
     lobby.created_at = datetime.utcnow()
     lobby.updated_at = datetime.utcnow()
     
+  
+    
     db.add(lobby)
     await db.commit()
     await db.refresh(lobby, attribute_names=["topic"])
+    host_player = MatchPlayer(
+        match_id=lobby.id,
+        user_id=current_user.id,
+        score=0,
+        cards_left=lobby.initial_hand_size,
+        tokens_earned=0,
+        status="waiting"  
+    )
+    db.add(host_player)
+    await db.commit()
+    await db.refresh(host_player)
     return lobby
 @router.get("/", response_model=list[LobbyOut])
 async def list_lobbies(
@@ -72,10 +85,11 @@ async def generate_unique_lobby_code(db: AsyncSession ,
         if exists is None:
             return code 
 
-@router.post("/", response_model=MatchPlayerOut, status_code=status.HTTP_201_CREATED)
-async def add_match_player(
+@router.post("/match_player", response_model=MatchPlayerOut, status_code=status.HTTP_201_CREATED)
+async def join_lobby(
     payload: MatchPlayerCreate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    currentUser : User = Depends(get_current_user),
 ):
     lobby = await db.get(Lobby, payload.match_id)
     if not lobby:
@@ -84,7 +98,7 @@ async def add_match_player(
     result = await db.execute(
         select(MatchPlayer).where(
             MatchPlayer.match_id == payload.match_id,
-            MatchPlayer.user_id == payload.user_id
+            MatchPlayer.user_id == currentUser.id
         )
     )
     existing = result.scalar_one_or_none()
@@ -93,12 +107,13 @@ async def add_match_player(
 
     # Create match player
     match_player = MatchPlayer(
-        id=uuid4(),
         match_id=payload.match_id,
-        user_id=payload.user_id,
+        user_id=currentUser.id,
         score=0,
         cards_left=0,
-        tokens_earned=0
+        tokens_earned=0,
+        created_at=datetime.utcnow(),
+        status="waiting"  # Trạng thái ban đầu của người chơi
     )
 
     db.add(match_player)

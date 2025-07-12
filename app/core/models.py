@@ -115,18 +115,15 @@ class Payment(Base):
     checkout_url      = Column(Text, nullable=True)  # PayOS checkout URL
     description       = Column(Text, nullable=True)
     
-    # Thông tin PayOS callback
     payos_reference   = Column(String(255), nullable=True)  # PayOS transaction reference
     payos_account_number = Column(String(50), nullable=True)
     transaction_datetime = Column(DateTime, nullable=True)  # Thời gian thanh toán thực tế
     
-    # Timestamps
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
     updated_at        = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     expires_at        = Column(DateTime, nullable=True)  # Thời gian hết hạn payment
     paid_at           = Column(DateTime, nullable=True)  # Thời gian thanh toán thành công
 
-    # Relationship
     user              = relationship("User", back_populates="payments") 
 
     
@@ -138,11 +135,11 @@ class Lobby(Base):
     code = Column(String(20), unique=True, nullable=False)
     host_user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     topic_id = Column(UUID(as_uuid=True), ForeignKey("topics.id", ondelete="SET NULL"))
-    status = Column(String(50), default="waiting") # waiting, in_progress, completed 
+    status = Column(String(50), default="waiting") 
     max_items_per_player = Column(Integer, default=5)
     initial_hand_size = Column(Integer, default=3)
     match_time_sec = Column(Integer, default=300)
-    player_count_limit = Column(Integer, default=0) # ✅ Thêm số người chơi
+    player_count_limit = Column(Integer, default=0) 
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -153,14 +150,16 @@ class Lobby(Base):
 class MatchPlayer(Base):
     __tablename__ = "match_players"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
     match_id = Column(UUID(as_uuid=True), ForeignKey("lobbies.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     
     score = Column(Integer, default=0)
     cards_left = Column(Integer, default=0)
     tokens_earned = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    match = relationship("Lobby", back_populates="players")
-    user = relationship("User", back_populates="matches")
+    match = relationship("Lobby")
+    user = relationship("User")
+    
+    status = Column(String(50), default="waiting")  # Trạng thái của người chơi trong trận đấu

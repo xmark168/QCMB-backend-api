@@ -228,7 +228,6 @@ class LobbyOut(LobbyCreate):
     
 class MatchPlayerCreate(BaseModel):
     match_id: UUID
-    user_id: UUID
 
 class MatchPlayerOut(MatchPlayerCreate):
     id: UUID
@@ -236,7 +235,7 @@ class MatchPlayerOut(MatchPlayerCreate):
     cards_left: int
     tokens_earned: int
     created_at: datetime
-
+    status: str  
     class Config:
         orm_mode = True
 # -------- PayOS Payment Schemas --------
