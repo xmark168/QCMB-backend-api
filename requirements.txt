@@ -71,3 +71,7 @@ virtualenv==20.31.2
 watchfiles==1.1.0
 websockets==15.0.1
 wheel==0.45.1
+aiohttp==3.9.1
+
+# PayOS package sẽ được thêm khi có SDK chính thức
+# payos-async==1.0.2  # Package này không hoạt động đúng cách 

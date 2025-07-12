@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Annotated, Optional
-from app.core.enums import UserRole
+from typing import Annotated, List, Optional
+from app.core.enums import UserRole, PaymentStatus
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from enum import Enum
 from uuid import UUID
@@ -23,7 +23,7 @@ class UserRead(BaseModel):
     token_balance: int
     score: Optional[int] = 0
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -65,6 +65,17 @@ class UserUpdate(BaseModel):
     token_balance: Optional[int] = None
     ranking_rate: Optional[int] = None
 
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+
+class AvatarUpdateRequest(BaseModel):
+    avatar_url: str = Field(..., max_length=500)
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=3, max_length=100)
+
 # -------- Forgot password --------
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -102,7 +113,7 @@ class TopicUpdate(TopicBase):
 
 class TopicOut(TopicBase):
     id: UUID
-    created_at: datetime
+    created_at: Optional[datetime]
     model_config = ConfigDict(from_attributes=True)
 
 # -------- Question --------
