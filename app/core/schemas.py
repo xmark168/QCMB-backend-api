@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import Annotated, Optional
-from app.core.enums import UserRole
-from app.core.models import User
+from typing import Annotated, List, Optional
+from app.core.enums import UserRole, PaymentStatus
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from enum import Enum
 from uuid import UUID
@@ -24,7 +23,7 @@ class UserRead(BaseModel):
     token_balance: int
     score: Optional[int] = 0
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -144,7 +143,7 @@ class QuestionOut(QuestionBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # -------- Card --------
 class CardRead(BaseModel):
@@ -156,7 +155,7 @@ class CardRead(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # -------- Inventory --------
 class InventoryRead(BaseModel):
@@ -169,7 +168,7 @@ class InventoryRead(BaseModel):
     card: Optional[CardRead] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # -------- Purchase (hardcode store items) --------
 class PurchaseRequest(BaseModel):
@@ -206,3 +205,106 @@ class LobbyCreate(BaseModel):
     initial_hand_size: Optional[int] = 3
     match_time_sec: Optional[int] = 300
     player_count_limit: Optional[int] = 2
+
+# -------- PayOS Payment Schemas --------
+class TokenPackageType(str, Enum):
+    PACKAGE_1000 = "TOKEN_PACKAGE_1000"
+    PACKAGE_5000 = "TOKEN_PACKAGE_5000" 
+    PACKAGE_10000 = "TOKEN_PACKAGE_10000"
+
+class PayOSItemData(BaseModel):
+    """Item data cho PayOS payment"""
+    name: str
+    quantity: int
+    price: int
+
+class CreatePaymentRequest(BaseModel):
+    """Request để tạo payment với PayOS"""
+    package_id: int = Field(..., description="ID của gói token (1001, 1002, 1003)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "package_id": 1001
+            }
+        }
+
+class PayOSPaymentData(BaseModel):
+    """PayOS payment data structure"""
+    orderCode: int
+    amount: int
+    description: str
+    cancelUrl: str
+    returnUrl: str
+    items: List[PayOSItemData]
+
+class CreatePaymentResponse(BaseModel):
+    """Response khi tạo payment thành công"""
+    payment_id: str
+    order_code: int
+    checkout_url: str
+    package_info: dict
+    amount: int
+    status: str
+
+class PaymentWebhookData(BaseModel):
+    """Webhook data từ PayOS"""
+    orderCode: int
+    amount: int
+    description: str
+    accountNumber: Optional[str] = None
+    reference: Optional[str] = None
+    transactionDateTime: Optional[str] = None
+    currency: str = "VND"
+    paymentLinkId: str
+    code: str = "00"
+    desc: str = "success"
+    counterAccountBankId: Optional[str] = None
+    counterAccountBankName: Optional[str] = None
+    counterAccountName: Optional[str] = None
+    counterAccountNumber: Optional[str] = None
+    virtualAccountName: Optional[str] = None
+    virtualAccountNumber: Optional[str] = None
+
+class PaymentStatusResponse(BaseModel):
+    """Response cho việc check payment status"""
+    payment_id: str
+    order_code: int
+    status: PaymentStatus
+    amount: int
+    description: str
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+
+class TokenPurchaseResponse(BaseModel):
+    """Response khi mua token thành công"""
+    message: str
+    package_info: dict
+    tokens_added: int
+    new_balance: int
+    payment_id: str
+
+# Token packages data
+TOKEN_PACKAGES = {
+    1001: {
+        "name": "Gói 1,000 Token",
+        "price": 100_000,  # 100,000 VND
+        "tokens": 1_000,
+        "description": "Nạp 1.000 token vào tài khoản",
+        "type": "TOKEN_PACKAGE_1000"
+    },
+    1002: {
+        "name": "Gói 5,000 Token", 
+        "price": 450_000,  # 450,000 VND (giảm 10%)
+        "tokens": 5_000,
+        "description": "Nạp 5.000 token vào tài khoản",
+        "type": "TOKEN_PACKAGE_5000"
+    },
+    1003: {
+        "name": "Gói 10,000 Token",
+        "price": 800_000,  # 800,000 VND (giảm 20%)
+        "tokens": 10_000,
+        "description": "Nạp 10.000 token vào tài khoản", 
+        "type": "TOKEN_PACKAGE_10000"
+    }
+} 
