@@ -162,4 +162,4 @@ class MatchPlayer(Base):
     match = relationship("Lobby")
     user = relationship("User")
     
-    status = Column(String(50), default="waiting")  # Trạng thái của người chơi trong trận đấu
+    status = Column(String(50), default="waiting")  

@@ -85,22 +85,33 @@ async def generate_unique_lobby_code(db: AsyncSession ,
         if exists is None:
             return code 
 
-@router.post("/match_player", response_model=MatchPlayerOut, status_code=status.HTTP_201_CREATED)
+@router.post("/join", response_model=MatchPlayerOut, status_code=status.HTTP_201_CREATED)
 async def join_lobby(
     payload: MatchPlayerCreate,
     db: AsyncSession = Depends(get_db),
     currentUser : User = Depends(get_current_user),
 ):
-    lobby = await db.get(Lobby, payload.match_id)
+    lobby1 = await db.execute(
+        select(Lobby)
+        .where(Lobby.id == payload.match_id)
+        .with_for_update()  # locks the row
+    )
+    lobby = lobby1.scalar_one_or_none()
+    
     if not lobby:
         raise HTTPException(status_code=404, detail="Lobby not found")
-
+    if lobby.status != "waiting":
+        raise HTTPException(status_code=400, detail="Lobby is not in waiting status")
+    if lobby.player_count_limit > 0 and lobby.player_count >= lobby.player_count_limit:
+        raise HTTPException(status_code=400, detail="Lobby player limit reached")
     result = await db.execute(
         select(MatchPlayer).where(
             MatchPlayer.match_id == payload.match_id,
             MatchPlayer.user_id == currentUser.id
         )
+        
     )
+    
     existing = result.scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=400, detail="Player already joined")
@@ -117,6 +128,57 @@ async def join_lobby(
     )
 
     db.add(match_player)
+    
+    lobby.player_count += 1  
+    lobby.updated_at = datetime.utcnow()
+
     await db.commit()
     await db.refresh(match_player)
     return match_player
+@router.post("/join-by-code", response_model=MatchPlayerOut, status_code=status.HTTP_201_CREATED)
+async def join_lobby_by_code(
+    code: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Lobby)
+        .where(Lobby.code == code)
+        .with_for_update()
+    )
+    lobby = result.scalar_one_or_none()
+    if not lobby:
+        raise HTTPException(status_code=404, detail="Lobby not found")
+    if lobby.status != "waiting":
+        raise HTTPException(status_code=400, detail="Lobby is not in waiting status")
+
+    if lobby.player_count_limit > 0 and lobby.player_count >= lobby.player_count_limit:
+        raise HTTPException(status_code=400, detail="Lobby player limit reached")
+    existing = await db.execute(
+        select(MatchPlayer).where(
+            MatchPlayer.match_id == lobby.id,
+            MatchPlayer.user_id == current_user.id
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="You already joined this lobby")
+    
+    player = MatchPlayer(
+        match_id=lobby.id,
+        user_id=current_user.id,
+        score=0,
+        cards_left=0,
+        tokens_earned=0,
+        created_at=datetime.utcnow(),
+        status="waiting"
+    )
+    
+    db.add(player)
+    
+    lobby.player_count += 1
+    lobby.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(player)
+
+    return player
