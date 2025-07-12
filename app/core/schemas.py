@@ -45,9 +45,9 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     role: str
-    avatar_url: str
+    avatar_url: Optional[str] = None
     token_balance: int
-    score: int
+    score: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -308,3 +308,20 @@ TOKEN_PACKAGES = {
         "type": "TOKEN_PACKAGE_10000"
     }
 } 
+
+
+# -------- Leaderboard --------
+class LeaderboardEntry(BaseModel):
+    user: UserOut
+    total_score: int
+    rank: int
+
+    class Config:
+        from_attributes = True
+
+class LeaderboardResponse(BaseModel):
+    data: List[LeaderboardEntry]
+    your_rank: Optional[int] = None
+
+    class Config:
+        from_attributes = True
