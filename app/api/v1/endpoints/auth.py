@@ -7,7 +7,12 @@ from sqlalchemy.future import select
 from app.core.email_utils import send_password_reset_email
 from ....core.database import get_db
 from ....core.models import User
-from ....core.schemas import ForgotPasswordRequest, ForgotPasswordResponse, GenericMessage, LoginInput, RegisterResponse, ResetWithVerifiedToken, UserRole, UserCreate, UserRead, Token, VerifyOtpInput, VerifyOtpResponse
+from ....core.schemas import (
+    AvatarUpdateRequest, ForgotPasswordRequest, ForgotPasswordResponse, GenericMessage, 
+    LoginInput, PasswordChangeRequest, ProfileUpdateRequest, 
+    RegisterResponse, ResetWithVerifiedToken, UserRole, 
+    UserCreate, UserRead, Token, VerifyOtpInput, VerifyOtpResponse
+)
 from ....core.security import (
     generate_raw_otp, hash_otp,
     create_otp_token, create_verified_token, decode_token,
@@ -31,8 +36,10 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
         name=user_in.name,
         username=user_in.username,
         email=user_in.email,
+        avatar_url='',
         password=get_password_hash(user_in.password),
-        token_balance=100
+        token_balance=100,
+        score=0
     )
     db.add(user)
     await db.commit()
@@ -166,3 +173,65 @@ async def reset_password(
     return {
         "detail": "Đổi mật khẩu thành công"
     }
+
+# ---------- Cập nhật profile ----------
+@router.put("/profile", response_model=GenericMessage, status_code=status.HTTP_200_OK)
+async def update_profile(
+    data: ProfileUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Cập nhật thông tin cá nhân (tên, email)"""
+    
+    # Cập nhật thông tin
+    if data.name is not None:
+        current_user.name = data.name
+    if data.email is not None:
+        current_user.email = data.email
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return GenericMessage(
+        detail="Cập nhật thông tin thành công"
+    )
+
+# ---------- Cập nhật avatar ----------
+@router.put("/avatar", response_model=GenericMessage)
+async def update_avatar(
+    data: AvatarUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Cập nhật avatar của người dùng"""
+    
+    current_user.avatar_url = data.avatar_url
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return GenericMessage(
+        detail="Cập nhật avatar thành công"
+    )
+
+# ---------- Thay đổi mật khẩu ----------
+@router.put("/password", response_model=GenericMessage)
+async def change_password(
+    data: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Thay đổi mật khẩu của người dùng"""
+    
+    # Xác thực mật khẩu hiện tại
+    if not verify_password(data.current_password, current_user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu hiện tại không đúng"
+        )
+    
+    current_user.password = get_password_hash(data.new_password)
+    await db.commit()
+    return GenericMessage(
+        detail="Đổi mật khẩu thành công"
+    )
