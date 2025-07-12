@@ -83,18 +83,36 @@ class PaymentOrder(Base):
 
     
 class Lobby(Base):
- __tablename__ = "lobbies"
+    __tablename__ = "lobbies"
 
- id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
- name = Column(String(100), nullable=False) 
- code = Column(String(20), unique=True, nullable=False)
- host_user_id = Column(UUID(as_uuid=True), nullable=False)
- topic_id = Column(UUID(as_uuid=True), ForeignKey("topics.id", ondelete="SET NULL"))
- status = Column(String(50), default="waiting") # waiting, in_progress, completed 
- max_items_per_player = Column(Integer, default=5)
- initial_hand_size = Column(Integer, default=3)
- match_time_sec = Column(Integer, default=300)
- player_count_limit = Column(Integer, default=0) # ✅ Thêm số người chơi
- started_at = Column(DateTime, nullable=True)
- ended_at = Column(DateTime, nullable=True)
- created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
+    name = Column(String(100), nullable=False) 
+    code = Column(String(20), unique=True, nullable=False)
+    host_user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
+    topic_id = Column(UUID(as_uuid=True), ForeignKey("topics.id", ondelete="SET NULL"))
+    status = Column(String(50), default="waiting") # waiting, in_progress, completed 
+    max_items_per_player = Column(Integer, default=5)
+    initial_hand_size = Column(Integer, default=3)
+    match_time_sec = Column(Integer, default=300)
+    player_count_limit = Column(Integer, default=0) # ✅ Thêm số người chơi
+    started_at = Column(DateTime, nullable=True)
+    ended_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    topic = relationship("Topic")
+    player_count = Column(Integer, default=1) 
+    host_user = relationship("User", foreign_keys=[host_user_id])
+ 
+class MatchPlayer(Base):
+    __tablename__ = "match_players"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True)
+    match_id = Column(UUID(as_uuid=True), ForeignKey("lobbies.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    score = Column(Integer, default=0)
+    cards_left = Column(Integer, default=0)
+    tokens_earned = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    match = relationship("Lobby", back_populates="players")
+    user = relationship("User", back_populates="matches")

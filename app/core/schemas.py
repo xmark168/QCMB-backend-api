@@ -45,9 +45,9 @@ class UserOut(BaseModel):
     username: str
     email: EmailStr
     role: str
-    avatar_url: str
-    token_balance: int
-    score: int
+    avatar_url: Optional[str]
+    token_balance: Optional[int] = 0
+    score: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -142,3 +142,37 @@ class LobbyCreate(BaseModel):
     initial_hand_size: Optional[int] = 3
     match_time_sec: Optional[int] = 300
     player_count_limit: Optional[int] = 2
+
+class LobbyOut(LobbyCreate):
+ id: UUID
+ name: str
+ code: str
+ host_user_id: int
+ topic_id: Optional[UUID]
+ status: str
+ max_items_per_player: int
+ initial_hand_size: int
+ match_time_sec: int
+ started_at: Optional[datetime]
+ ended_at: Optional[datetime]
+ created_at: datetime
+ topic: TopicOut
+ host_user: UserOut
+ player_count: int 
+ class Config:
+    orm_mode = True
+    from_attributes = True
+    
+class MatchPlayerCreate(BaseModel):
+    match_id: UUID
+    user_id: UUID
+
+class MatchPlayerOut(MatchPlayerCreate):
+    id: UUID
+    score: int
+    cards_left: int
+    tokens_earned: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
