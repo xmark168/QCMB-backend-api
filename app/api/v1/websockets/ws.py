@@ -45,7 +45,7 @@ async def websocket_lobby (ws: WebSocket,
             await broadcast(lobby_id, data)
     except WebSocketDisconnect:
         await manager_disconnect(lobby_id, ws)
-        matchp = await db.execute(select(MatchPlayer).where(MatchPlayer.status != "left" 
+        matchp = await db.execute(select(MatchPlayer).where(MatchPlayer.status == "waiting" 
                                                         , MatchPlayer.match_id == lobby_id
                                                         , MatchPlayer.user.has(User.username == username)))
         player_slot = matchp.scalar_one_or_none()
@@ -54,9 +54,10 @@ async def websocket_lobby (ws: WebSocket,
 
             await db.delete(player_slot)
             await db.commit()
-            result = await db.execute(select(Lobby).where(Lobby.status != "finished" , Lobby.id == lobby_id))       
+            result = await db.execute(select(Lobby).where(Lobby.id == lobby_id))       
             lobby = result.scalar_one_or_none()
             lobby.player_count = lobby.player_count - 1
+            print(lobby.player_count)
             if lobby.player_count == 0:
                 lobby.status = "finished"
                 lobby.code = ''
@@ -66,4 +67,5 @@ async def websocket_lobby (ws: WebSocket,
                 new_player = newm.scalar_one_or_none()
                 lobby.host_user_id = new_player.user_id
             await db.commit()
+            await db.refresh(lobby)
         await broadcast(lobby_id, {"event": "leave", "user": username})

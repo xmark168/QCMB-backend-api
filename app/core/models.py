@@ -154,3 +154,31 @@ class MatchPlayer(Base):
     user = relationship("User")
     
     status = Column(String(50), default="waiting")  
+    
+class Match_Card(Base):
+    __tablename__ = "match_cards"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
+    match_id = Column(UUID(as_uuid=True), ForeignKey("lobbies.id"), nullable=False)
+    question_card_id = Column(UUID(as_uuid=True), ForeignKey("questions.id"), nullable=False)
+    item_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=True)
+    card_state = Column(String(20), nullable=False, default="pending")
+    owner_user_id = Column(BigInteger, ForeignKey("users.id"), nullable=True)
+    order_no = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    lobby = relationship("Lobby", back_populates="match_cards")
+    question = relationship("Question", back_populates="match_cards")
+    owner = relationship("User")
+
+class MatchPlayerItem(Base):
+    __tablename__ = "match_player_items"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
+    match_player_id = Column(UUID(as_uuid=True), ForeignKey("match_players.id"), nullable=False)
+    card_id = Column(UUID(as_uuid=True), ForeignKey("cards.id"), nullable=False)
+    quantity_used = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    player = relationship("MatchPlayer")
+    card = relationship("Card")
