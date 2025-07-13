@@ -238,6 +238,11 @@ class MatchPlayerOut(MatchPlayerCreate):
     status: str  
     class Config:
         orm_mode = True
+class MatchPlayerRead(MatchPlayerOut):
+    user: UserOut
+    class Config:
+        orm_mode = True
+        from_attributes = True
 # -------- PayOS Payment Schemas --------
 class TokenPackageType(str, Enum):
     PACKAGE_1000 = "TOKEN_PACKAGE_1000"

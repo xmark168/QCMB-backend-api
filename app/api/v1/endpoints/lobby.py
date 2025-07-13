@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from app.api.v1.endpoints.auth import require_roles,get_current_user
 
-from app.core.schemas import LobbyCreate,LobbyOut, MatchPlayerCreate, MatchPlayerOut
+from app.core.schemas import LobbyCreate,LobbyOut, MatchPlayerCreate, MatchPlayerOut, MatchPlayerRead
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -99,11 +99,11 @@ async def join_lobby(
     lobby = lobby1.scalar_one_or_none()
     
     if not lobby:
-        raise HTTPException(status_code=404, detail="Lobby not found")
+        raise HTTPException(status_code=404, detail="Không tim thấy phòng chơi")
     if lobby.status != "waiting":
-        raise HTTPException(status_code=400, detail="Lobby is not in waiting status")
+        raise HTTPException(status_code=400, detail="Phòng đang chơi hoặc đã kết thúc")
     if lobby.player_count_limit > 0 and lobby.player_count >= lobby.player_count_limit:
-        raise HTTPException(status_code=400, detail="Lobby player limit reached")
+        raise HTTPException(status_code=400, detail="Phòng đã dầy người chơi")
     result = await db.execute(
         select(MatchPlayer).where(
             MatchPlayer.match_id == payload.match_id,
@@ -114,7 +114,7 @@ async def join_lobby(
     
     existing = result.scalar_one_or_none()
     if existing:
-        raise HTTPException(status_code=400, detail="Player already joined")
+        raise HTTPException(status_code=400, detail="Bạn đã ở trong phòng này rồi")
 
     # Create match player
     match_player = MatchPlayer(
@@ -148,12 +148,12 @@ async def join_lobby_by_code(
     )
     lobby = result.scalar_one_or_none()
     if not lobby:
-        raise HTTPException(status_code=404, detail="Lobby not found")
+        raise HTTPException(status_code=404, detail="Không tìm thấy phòng chơi với mã này")
     if lobby.status != "waiting":
-        raise HTTPException(status_code=400, detail="Lobby is not in waiting status")
+        raise HTTPException(status_code=400, detail="Phòng đang chơi hoặc đã kết thúc")
 
     if lobby.player_count_limit > 0 and lobby.player_count >= lobby.player_count_limit:
-        raise HTTPException(status_code=400, detail="Lobby player limit reached")
+        raise HTTPException(status_code=400, detail="Phòng đã đầy người chơi")
     existing = await db.execute(
         select(MatchPlayer).where(
             MatchPlayer.match_id == lobby.id,
@@ -161,7 +161,7 @@ async def join_lobby_by_code(
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="You already joined this lobby")
+        raise HTTPException(status_code=400, detail="Bạn đã tham gia phòng này rồi")
     
     player = MatchPlayer(
         match_id=lobby.id,
@@ -182,3 +182,42 @@ async def join_lobby_by_code(
     await db.refresh(player)
 
     return player
+
+@router.get("/{lobby_id}", response_model=LobbyOut)
+async def get_lobby_by_id(
+    lobby_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(Lobby)
+        .where(Lobby.id == lobby_id)
+        .options(
+            selectinload(Lobby.topic),
+            selectinload(Lobby.host_user)
+        )
+    )
+    lobby = result.scalar_one_or_none()
+    
+    if not lobby:
+        raise HTTPException(status_code=404, detail="Không tìm thấy phòng chơi")
+    
+    return lobby
+
+@router.get("/{lobby_id}/players", response_model=list[MatchPlayerRead])
+async def list_lobby_players(
+    lobby_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    lobby = await db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(status_code=404, detail="Không tìm thấy phòng chơi")
+    
+    players = await db.execute(
+        select(MatchPlayer)
+        .where(MatchPlayer.match_id == lobby_id)
+        .options(selectinload(MatchPlayer.user))
+    )
+    
+    return players.scalars().all()
