@@ -223,7 +223,7 @@ class LobbyOut(LobbyCreate):
  host_user: UserOut
  player_count: int 
  class Config:
-    orm_mode = True
+    from_attributes = True
     from_attributes = True
     
 class MatchPlayerCreate(BaseModel):
@@ -236,12 +236,13 @@ class MatchPlayerOut(MatchPlayerCreate):
     tokens_earned: int
     created_at: datetime
     status: str  
+    user_id: int
+    match_id : UUID
     class Config:
-        orm_mode = True
+        from_attributes = True
 class MatchPlayerRead(MatchPlayerOut):
     user: UserOut
     class Config:
-        orm_mode = True
         from_attributes = True
 # -------- PayOS Payment Schemas --------
 class TokenPackageType(str, Enum):

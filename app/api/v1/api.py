@@ -1,3 +1,4 @@
+from app.api.v1.websockets import ws
 from fastapi import APIRouter
 from .endpoints import users,auth,question,topic,lobby
 
@@ -13,3 +14,4 @@ router.include_router(store.router)
 router.include_router(payment.router)
 router.include_router(leaderboard.router)
 router.include_router(lobby.router)
+router.include_router(ws.router)

@@ -11,7 +11,7 @@ def create_app() -> FastAPI:
                   docs_url="/docs" if settings.DEBUG else None)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.ALLOW_ORIGINS,
+        allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"]
     )

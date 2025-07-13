@@ -84,8 +84,7 @@ async def purchase_item(
         new_card = Card(
             type=item_info["effect_type"],
             title=item_info["name"],
-            description=item_info["description"],
-            question_id=None  # Store items không liên quan question
+            description=item_info["description"]
         )
         db.add(new_card)
         await db.flush()  # Để lấy ID

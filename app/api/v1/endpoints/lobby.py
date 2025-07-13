@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.core.models import   MatchPlayer,Topic, User,Lobby
 import string
 import random
-
+from ..websockets.ws_lobby import broadcast
 router = APIRouter(prefix="/lobby", tags=["lobby"])
 
 @router.post("/", response_model=LobbyOut, status_code=status.HTTP_201_CREATED)
@@ -79,7 +79,6 @@ async def generate_unique_lobby_code(db: AsyncSession ,
         code = ''.join(random.choices(chars, k=length))
         result = await db.execute(
             select(Lobby.id).where(Lobby.code == code)
-      
         )
         exists = result.scalar_one_or_none()
         if exists is None:
@@ -216,8 +215,85 @@ async def list_lobby_players(
     
     players = await db.execute(
         select(MatchPlayer)
-        .where(MatchPlayer.match_id == lobby_id)
+        .where(MatchPlayer.match_id == lobby_id, MatchPlayer.status != "left")
         .options(selectinload(MatchPlayer.user))
     )
     
     return players.scalars().all()
+@router.post("/{lobby_id}/ready", response_model=MatchPlayerOut)
+async def player_ready(
+    lobby_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(MatchPlayer)
+        .where(
+            MatchPlayer.match_id == lobby_id,
+            MatchPlayer.user_id == current_user.id
+        )
+        .with_for_update()
+    )
+    player = result.scalar_one_or_none()
+    if not player:
+        raise HTTPException(status_code=404, detail="Bạn không ở trong phòng này")
+    
+    if player.status == "ready":
+        raise HTTPException(status_code=400, detail="Bạn đã ở trạng thái sẵn sàng")
+    if player.status != "waiting":
+        raise HTTPException(status_code=400, detail=f"Không thể chuyển trạng thái từ {player.status} sang ready")
+    
+    player.status = "ready"
+    
+    await db.commit()
+    await db.refresh(player)
+    
+    await broadcast(lobby_id,{
+        "event": "ready",
+        "user_id": str(current_user.id)
+    })
+    
+    return player
+
+@router.post("/{lobby_id}/unready", response_model=MatchPlayerOut)
+async def player_unready(
+    lobby_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(MatchPlayer)
+        .where(
+            MatchPlayer.match_id == lobby_id,
+            MatchPlayer.user_id == current_user.id
+        )
+        .with_for_update()
+    )
+    player = result.scalar_one_or_none()
+    if not player:
+        raise HTTPException(status_code=404, detail="Bạn không ở trong phòng này")
+
+    if player.status == "waiting":
+        raise HTTPException(status_code=400, detail="Bạn đang ở trạng thái chờ")
+    if player.status != "ready":
+        raise HTTPException(status_code=400, detail=f"Không thể chuyển trạng thái từ {player.status} sang waiting")
+
+    player.status = "waiting"
+
+    await db.commit()
+    await db.refresh(player)
+
+    await broadcast(lobby_id, {
+        "event": "unready",
+        "user_id": str(current_user.id)
+    })
+
+    return player
+@router.get("/test/{lobby_id}",response_model=str)
+async def test(
+    lobby_id: UUID ,
+    _: User = Depends(get_current_user),
+
+):
+    return ""
+

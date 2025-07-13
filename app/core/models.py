@@ -71,18 +71,9 @@ class Card(Base):
     id          = Column(UUID(as_uuid=True), primary_key=True,
                         default=default_uuid, index=True, unique=True)
     type        = Column(String(50), nullable=True)
-    question_id = Column(UUID(as_uuid=True),
-                        ForeignKey("questions.id", ondelete="CASCADE"),
-                        nullable=True)
     title       = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)
     created_at  = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Relationship
-    question = relationship(
-        "Question",
-        cascade="all, delete",
-    )
 
 class Inventory(Base):
     __tablename__  = "inventories"
@@ -132,7 +123,7 @@ class Lobby(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=default_uuid, index=True, unique=True)
     name = Column(String(100), nullable=False) 
-    code = Column(String(20), unique=True, nullable=False)
+    code = Column(String(20), nullable=False)
     host_user_id = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     topic_id = Column(UUID(as_uuid=True), ForeignKey("topics.id", ondelete="SET NULL"))
     status = Column(String(50), default="waiting") 

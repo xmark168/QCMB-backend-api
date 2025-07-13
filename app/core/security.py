@@ -8,7 +8,7 @@ from typing import Optional
 
 SECRET_KEY = "CHANGE_ME_LONG_RANDOM"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 bearer_scheme = HTTPBearer(
     scheme_name="BearerAuth",         
