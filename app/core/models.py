@@ -64,6 +64,11 @@ class Question(Base):
     created_at      = Column(DateTime, default=datetime.utcnow)
 
     topic           = relationship("Topic", back_populates="questions")
+    match_cards = relationship(
+        "Match_Card",
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
 
 class Card(Base):
     __tablename__ = "cards"
@@ -134,9 +139,15 @@ class Lobby(Base):
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    topic = relationship("Topic")
     player_count = Column(Integer, default=1) 
+
+    topic = relationship("Topic")
     host_user = relationship("User", foreign_keys=[host_user_id])
+    match_cards = relationship(
+        "Match_Card",
+        back_populates="lobby",
+        cascade="all, delete-orphan",
+    )
  
 class MatchPlayer(Base):
     __tablename__ = "match_players"
