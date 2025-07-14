@@ -187,10 +187,15 @@ class PurchaseResponse(BaseModel):
 STORE_ITEMS = {
     -1: {"name": "Items", "price": 0, "description": "", "effect_type": "HEADER_ITEMS"},
 
-    1: {"name": "Skip Turn", "price": 50, "description": "Bỏ lượt của đối thủ hiện tại", "effect_type": "SKIP_TURN"},
-    2: {"name": "Reverse", "price": 60, "description": "Đảo ngược thứ tự lượt chơi", "effect_type": "REVERSE_ORDER"},
-    3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
-    4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
+    # 1: {"name": "Skip Turn", "price": 50, "description": "Bỏ lượt của đối thủ hiện tại", "effect_type": "SKIP_TURN"},
+    # 2: {"name": "Reverse", "price": 60, "description": "Đảo ngược thứ tự lượt chơi", "effect_type": "REVERSE_ORDER"},
+    # 3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
+    # 4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
+
+    1: {"name": "Power Score", "price": 50, "description": "Nhân 1.5 điểm số của card hiện tại", "effect_type": "POWER_SCORE"}, 
+    2: {"name": "Point Steal", "price": 60, "description": "Lấy ngẫu nhiên 1 - 10 điểm của 1 đối thủ bất kì", "effect_type": "POINT_STEAL"}, 
+    3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của card hiện tại", "effect_type": "DOUBLE_SCORE"}, 
+    4: {"name": "Ghost Turn", "price": 40, "description": "Bỏ qua lượt tiếp theo nhưng vẫn nhận được điểm", "effect_type": "GHOST_TURN"},
 
     -2: {"name": "Gói Nạp Token", "price": 0, "description": "", "effect_type": "HEADER_PACKAGES"},
     
