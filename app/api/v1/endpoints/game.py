@@ -86,7 +86,7 @@ async def submit_answer(
         max_res = await db.execute(
             select(func.coalesce(func.max(Match_Card.order_no), 0))
             .where(Match_Card.match_id == match_id)
-            .options(selectinload(Match_Card.question)).options(selectinload(Match_Card.item))
+            
         )
         current_max = max_res.scalar_one()
         question = q_rand.scalar_one_or_none()
