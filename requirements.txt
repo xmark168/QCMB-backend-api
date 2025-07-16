@@ -1,3 +1,4 @@
+aiosmtplib==4.0.1
 alembic==1.16.2
 annotated-types==0.7.0
 anyio==4.9.0
@@ -7,6 +8,7 @@ black==25.1.0
 certifi==2025.6.15
 cffi==1.17.1
 cfgv==3.4.0
+charset-normalizer==3.4.2
 click==8.2.1
 colorama==0.4.6
 cryptography==45.0.4
@@ -37,6 +39,7 @@ nodeenv==1.9.1
 packaging==25.0
 passlib==1.7.4
 pathspec==0.12.1
+payos==0.1.8
 platformdirs==4.3.8
 pluggy==1.6.0
 pre_commit==4.2.0
@@ -53,6 +56,7 @@ python-dotenv==1.1.1
 python-jose==3.5.0
 python-multipart==0.0.20
 PyYAML==6.0.2
+requests==2.32.4
 rich==14.0.0
 rich-toolkit==0.14.7
 rsa==4.9.1
@@ -66,12 +70,9 @@ starlette==0.46.2
 typer==0.16.0
 typing-inspection==0.4.1
 typing_extensions==4.14.0
+urllib3==2.5.0
 uvicorn==0.35.0
 virtualenv==20.31.2
 watchfiles==1.1.0
 websockets==15.0.1
 wheel==0.45.1
-aiohttp==3.9.1
-
-# PayOS package sẽ được thêm khi có SDK chính thức
-# payos-async==1.0.2  # Package này không hoạt động đúng cách 
