@@ -181,6 +181,7 @@ class Match_Card(Base):
     lobby = relationship("Lobby")
     question = relationship("Question")
     owner = relationship("User")
+    item = relationship("Card", foreign_keys=[item_id])
 
 class MatchPlayerItem(Base):
     __tablename__ = "match_player_items"

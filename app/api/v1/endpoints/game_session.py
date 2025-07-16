@@ -63,7 +63,19 @@ async def end_game_after(lobby_id: UUID, duration: int ):
         )
         .values(status="finished")
         )
-    # update lobby status
+    # consult results and update user
+        result = await db.execute(
+            select(MatchPlayer).where(MatchPlayer.match_id == lobby_id)
+        )
+        match_players = result.scalars().all()
+        for player in match_players:
+                user = await db.get(User, player.user_id)
+                if user:
+                    user.score += player.score
+                    user.token_balance += player.tokens_earned
+                    await db.commit()
+                    await db.refresh(user)
+        # Cập nhật trạng thái lobby
         result = await db.execute(
         select(Lobby).where(Lobby.id == lobby_id)
          )

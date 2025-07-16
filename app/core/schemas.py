@@ -417,7 +417,7 @@ class MatchCardOut(BaseModel):
     order_no: int
     question : Optional[QuestionOut] = None
     item_id : Optional[UUID] = None
-    
+    item: Optional[CardRead] = None
     class Config:
         from_attributes = True
         
@@ -432,3 +432,10 @@ class SubmitAnswerOut(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class BringItem(BaseModel):
+    card_id: UUID
+    quantity: int
+
+class BringItemsRequest(BaseModel):
+    items: list[BringItem]
