@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.api.v1.endpoints.auth import get_current_user
 from app.core.database import get_db
 from app.core.models import Card, User, Inventory
-from app.core.schemas import STORE_ITEMS, TOKEN_PACKAGES, CreatePaymentRequest, CreatePaymentResponse, InventoryRead, PurchaseItemData, PurchaseResponse, PurchaseRequest
+from app.core.schemas import ITEM_DEFINITIONS, LOOT_BOX_CONFIG, LOOT_BOX_ID, STORE_ITEMS, TOKEN_PACKAGES, CreatePaymentRequest, CreatePaymentResponse, InventoryRead, PurchaseItemData, PurchaseResponse, PurchaseRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import update, select
+import random
 
 
 router = APIRouter(prefix="/store", tags=["store"])
@@ -71,20 +72,36 @@ async def purchase_item(
     # 5. Tạo hoặc tìm Card tương ứng
     card_data = None
 
+    if purchase_data.item_id == LOOT_BOX_ID:
+        # Randomly select one of the loot items
+        choices = [cfg['item_id'] for cfg in LOOT_BOX_CONFIG]
+        weights = [cfg['weight'] for cfg in LOOT_BOX_CONFIG]
+        # support quantity >1 by drawing k times; here assume quantity=1
+        awarded_id = random.choices(choices, weights)[0]
+        awarded_def = ITEM_DEFINITIONS[awarded_id]
+        from_gift_box = True
+    else:
+        # Direct item purchase (should no longer occur for effect_type HEADER_ITEMS)
+        awarded_id = purchase_data.item_id
+        awarded_def = ITEM_DEFINITIONS.get(awarded_id, item_info)
+        from_gift_box = False
+
     # Tìm xem đã có Card nào cho store item này chưa
     existing_card = await db.scalar(
         select(Card).where(
-            Card.type == item_info["effect_type"],
-            Card.title == item_info["name"]
+            # Card.type == item_info["effect_type"],
+            # Card.title == item_info["name"]
+            Card.type == awarded_def["effect_type"],
+            Card.title == awarded_def["name"]
         )
     )
 
     if not existing_card:
         # Tạo Card mới cho store item
         new_card = Card(
-            type=item_info["effect_type"],
-            title=item_info["name"],
-            description=item_info["description"]
+            type=awarded_def["effect_type"],
+            title=awarded_def["name"],
+            description=awarded_def["description"]
         )
         db.add(new_card)
         await db.flush()  # Để lấy ID
@@ -121,20 +138,37 @@ async def purchase_item(
     await db.commit()
 
     # 7. Response với hardcode item info
-    purchased_item = {
-        "id": purchase_data.item_id,
-        "name": item_info["name"],
-        "price": item_info["price"],
-        "description": item_info["description"],
-        "effect_type": item_info["effect_type"],
-        "quantity": purchase_data.quantity
-    }
+    # purchased_item = {
+    #     "id": purchase_data.item_id,
+    #     "name": item_info["name"],
+    #     "price": item_info["price"],
+    #     "description": item_info["description"],
+    #     "effect_type": item_info["effect_type"],
+    #     "quantity": purchase_data.quantity
+    # }
     
+    # return PurchaseResponse(
+    #     data=PurchaseItemData(
+    #         item=purchased_item,
+    #         new_balance=new_balance,
+    #         inventory_quantity=inventory_quantity
+    #     )
+    # )
+    purchased_item = {
+        "id": awarded_id,
+        "name": awarded_def["name"],
+        "price": awarded_def["price"],
+        "description": awarded_def["description"],
+        "effect_type": awarded_def["effect_type"],
+        "quantity": purchase_data.quantity,
+        "from_gift_box": from_gift_box,
+    }
+
     return PurchaseResponse(
         data=PurchaseItemData(
             item=purchased_item,
             new_balance=new_balance,
-            inventory_quantity=inventory_quantity
+            inventory_quantity=inventory_quantity,
         )
     )
 

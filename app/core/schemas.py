@@ -184,13 +184,56 @@ class PurchaseResponse(BaseModel):
     data: PurchaseItemData
 
 # Hardcode store items
+ITEM_DEFINITIONS: dict[int, dict] = {
+    1: {  # POWER_SCORE
+        "name": "Power Score",
+        "price": 50,
+        "description": "Nhân 1.5 điểm số của card hiện tại",
+        "effect_type": "POWER_SCORE",
+    },
+    2: {  # POINT_STEAL
+        "name": "Point Steal",
+        "price": 60,
+        "description": "Lấy ngẫu nhiên 1 – 10 điểm của 1 đối thủ bất kì",
+        "effect_type": "POINT_STEAL",
+    },
+    3: {  # DOUBLE_SCORE
+        "name": "Double Score",
+        "price": 80,
+        "description": "Nhân đôi điểm số của card hiện tại",
+        "effect_type": "DOUBLE_SCORE",
+    },
+    4: {  # GHOST_TURN
+        "name": "Ghost Turn",
+        "price": 40,
+        "description": "Bỏ qua lượt tiếp theo nhưng vẫn nhận được điểm",
+        "effect_type": "GHOST_TURN",
+    },
+}
+
+LOOT_BOX_ID = 5
+
+LOOT_BOX_CONFIG: list[dict] = [
+    {"item_id": 1, "weight": 10},  # 10/19 ≈ 52.6 %
+    {"item_id": 2, "weight": 5},   # 26.3 %
+    {"item_id": 3, "weight": 3},   # 15.8 %
+    {"item_id": 4, "weight": 1},   # 5.3 %
+]
+
 STORE_ITEMS = {
     -1: {"name": "Items", "price": 0, "description": "", "effect_type": "HEADER_ITEMS"},
 
-    1: {"name": "Skip Turn", "price": 50, "description": "Bỏ lượt của đối thủ hiện tại", "effect_type": "SKIP_TURN"},
-    2: {"name": "Reverse", "price": 60, "description": "Đảo ngược thứ tự lượt chơi", "effect_type": "REVERSE_ORDER"},
-    3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
-    4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
+    # 1: {"name": "Skip Turn", "price": 50, "description": "Bỏ lượt của đối thủ hiện tại", "effect_type": "SKIP_TURN"},
+    # 2: {"name": "Reverse", "price": 60, "description": "Đảo ngược thứ tự lượt chơi", "effect_type": "REVERSE_ORDER"},
+    # 3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của lượt hiện tại", "effect_type": "DOUBLE_SCORE"},
+    # 4: {"name": "Extra Time", "price": 40, "description": "Thêm thời gian trả lời câu hỏi", "effect_type": "EXTRA_TIME"},
+
+    # 1: {"name": "Power Score", "price": 50, "description": "Nhân 1.5 điểm số của card hiện tại", "effect_type": "POWER_SCORE"}, 
+    # 2: {"name": "Point Steal", "price": 60, "description": "Lấy ngẫu nhiên 1 - 10 điểm của 1 đối thủ bất kì", "effect_type": "POINT_STEAL"}, 
+    # 3: {"name": "Double Score", "price": 80, "description": "Nhân đôi điểm số của card hiện tại", "effect_type": "DOUBLE_SCORE"}, 
+    # 4: {"name": "Ghost Turn", "price": 40, "description": "Bỏ qua lượt tiếp theo nhưng vẫn nhận được điểm", "effect_type": "GHOST_TURN"},
+    
+    LOOT_BOX_ID: {"name": "Hộp Quà", "price": 100, "description": "Mở ra một item ngẫu nhiên", "effect_type": "GIFT_BOX"},
 
     -2: {"name": "Gói Nạp Token", "price": 0, "description": "", "effect_type": "HEADER_PACKAGES"},
     
