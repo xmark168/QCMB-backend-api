@@ -5,7 +5,11 @@ from sqlalchemy import engine_from_config, pool
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
+import sys
+import os
 
+# Add this at the top of env.py
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # import models để Alembic thấy bảng
 from app.core import models       
 from app.core.models import Base
