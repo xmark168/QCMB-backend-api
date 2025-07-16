@@ -363,3 +363,29 @@ class LeaderboardResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MatchCardOut(BaseModel):
+    id: UUID
+    match_id: UUID
+    owner_user_id: int
+    card_state: str
+    question_card_id: Optional[UUID] = None
+    created_at: datetime
+    order_no: int
+    question : Optional[QuestionOut] = None
+    item_id : Optional[UUID] = None
+    
+    class Config:
+        from_attributes = True
+        
+class SubmitAnswerIn(BaseModel):
+    match_card_id: UUID
+    answer: str
+    
+class SubmitAnswerOut(BaseModel):
+    
+    correct: bool
+   
+
+    class Config:
+        orm_mode = True

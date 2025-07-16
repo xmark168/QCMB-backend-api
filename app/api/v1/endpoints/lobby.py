@@ -1,21 +1,26 @@
+import asyncio
 from datetime import datetime
+from typing import Sequence
 from uuid import UUID
 
+from app.api.v1.endpoints.game_session import end_game_after, _running_end_game_tasks
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from app.api.v1.endpoints.auth import require_roles,get_current_user
 
 from app.core.schemas import LobbyCreate,LobbyOut, MatchPlayerCreate, MatchPlayerOut, MatchPlayerRead
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select,update
+from sqlalchemy import select,update,func, desc
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.core.models import   MatchPlayer, Question,Topic, User,Lobby
+from app.core.models import   Match_Card, MatchPlayer, Question,Topic, User,Lobby
 import string
 import random
 from ..websockets.ws_lobby import broadcast
+from ..websockets.ws_game  import broadcast as game_broadcast
+
 from sqlalchemy.ext.asyncio import AsyncSession
-import asyncio
+from fastapi import BackgroundTasks, Depends
 
 router = APIRouter(prefix="/lobby", tags=["lobby"])
 
@@ -75,6 +80,19 @@ async def list_lobbies_waiting(
                   .options(selectinload(Lobby.host_user))
                               .where(Lobby.status == "waiting"))
     return result.scalars().all()
+@router.get("/playing", response_model=list[LobbyOut])
+async def list_lobbies_playing(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+): 
+    result = await db.execute(select(Lobby).offset(skip).limit(limit)
+                                    .options(selectinload(Lobby.topic))
+                  .options(selectinload(Lobby.host_user))
+                              .where(Lobby.status == "playing")
+                              .order_by(desc(Lobby.id)))
+    return result.scalars().all()
 async def generate_unique_lobby_code(db: AsyncSession ,
                                length: int = 6) -> str:
     chars = string.ascii_uppercase + string.digits  
@@ -123,7 +141,7 @@ async def join_lobby(
         match_id=payload.match_id,
         user_id=currentUser.id,
         score=0,
-        cards_left=0,
+        cards_left=10,
         tokens_earned=0,
         created_at=datetime.utcnow(),
         status="waiting"  # Trạng thái ban đầu của người chơi
@@ -170,7 +188,7 @@ async def join_lobby_by_code(
         match_id=lobby.id,
         user_id=current_user.id,
         score=0,
-        cards_left=0,
+        cards_left=10,
         tokens_earned=0,
         created_at=datetime.utcnow(),
         status="waiting"
@@ -210,6 +228,23 @@ async def get_lobby_by_id(
 
 @router.get("/{lobby_id}/players", response_model=list[MatchPlayerRead])
 async def list_lobby_players(
+    lobby_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    lobby = await db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(status_code=404, detail="Không tìm thấy phòng chơi")
+    
+    players = await db.execute(
+        select(MatchPlayer)
+        .where(MatchPlayer.match_id == lobby_id, MatchPlayer.status != "left")
+        .options(selectinload(MatchPlayer.user))
+    )
+    
+    return players.scalars().all()
+@router.get("/{lobby_id}/players/playing", response_model=list[MatchPlayerRead])
+async def list_lobby_players_playing(
     lobby_id: UUID,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
@@ -297,6 +332,7 @@ async def player_unready(
 @router.post("/{lobby_id}/start", response_model=LobbyOut)
 async def start_game(
     lobby_id: UUID,
+    background_tasks: BackgroundTasks,
     current_user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -317,90 +353,63 @@ async def start_game(
     lobby.status = "playing"
     lobby.started_at = datetime.utcnow()
     await db.commit()
-    await db.refresh(lobby)
-    
+    await db.refresh(lobby,attribute_names=["topic"])
+    #set every player to "playing"
+    await db.execute(
+        update(MatchPlayer)
+        .where(MatchPlayer.match_id == lobby_id)
+        .values(status="playing")
+    )
+    await db.commit()
      # prepare random questions and link items
     questions = (await db.execute(
         select(Question).where(Question.topic_id == lobby.topic_id)
     )).scalars().all()
-    create_question_cards(lobby.id, questions, db)
+    
+    match_players = await db.execute(
+        select(MatchPlayer).where(MatchPlayer.match_id == lobby_id)
+        .options(selectinload(MatchPlayer.user))
+    )
+    for player in match_players.scalars().all():
+        await create_question_cards(lobby.id,player.user.id, questions,lobby.initial_hand_size, db)
     
     await broadcast(lobby_id, {"event": "start", "by": str(current_user.id)})
 
-    asyncio.create_task(end_game_after(lobby_id, lobby.match_time_sec))
-
+    # Schedule end game task
+    old = _running_end_game_tasks.get(lobby_id)
+    if old and not old.done():
+        old.cancel()
+    task = asyncio.create_task(end_game_after(lobby_id,lobby.match_time_sec ))
+    print("Task status:", task)
+    _running_end_game_tasks[lobby_id] = task
+    
     return lobby
-
-async def end_game_after(lobby_id: UUID, duration: int):
-
-    try:
-        await asyncio.sleep(duration)
-    except asyncio.CancelledError:
-        return
-
-    async with async_session() as session:
-        # mark remaining players as finished
-        await session.execute(
-            update(MatchPlayer)
-            .where(
-                MatchPlayer.match_id == lobby_id,
-                MatchPlayer.status != "left"
-            )
-            .values(status="finished")
-        )
-        # update lobby status
-        result = await session.execute(select(Lobby).where(Lobby.id == lobby_id))
-        lobby = result.scalar_one_or_none()
-        if lobby:
-            lobby.status = "finished"
-            lobby.ended_at = datetime.utcnow()
-            await session.commit()
-
-    await broadcast(lobby_id, {"event": "end"})
-def create_question_cards(match_id: UUID, questions: list[Question],  db: AsyncSession):
+async def create_question_cards(
+    match_id: UUID,
+    user_id : int,
+    questions: Sequence[Question],
+    number_of_questions: int = 5,
+    db: AsyncSession = Depends(get_db),
+) -> None:
 
     random.shuffle(questions)
-    
-    count = min(len(questions))
-    selected_qs = questions[:count]
+    if len(questions) < number_of_questions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Không đủ câu hỏi. Yêu cầu: {number_of_questions}, Hiện đang có: {len(questions)}"
+        )
+    selected_qs = questions[:number_of_questions]
 
     for idx, question in enumerate(selected_qs, start=1):
         mc = Match_Card(
             match_id=match_id,
             question_card_id=question.id,
             card_state="pending",
-            owner_user_id=None,
+            owner_user_id=user_id,
             order_no=idx,
-            is_initial=True,
             created_at=datetime.utcnow()
         )
-        db.add(mc)    
-@router.post("/{lobby_id}/start", response_model=LobbyOut)
-async def start_game(
-    lobby_id: UUID,
-    current_user = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(Lobby)
-        .where(Lobby.id == lobby_id)
-        .with_for_update()
-    )
-    lobby = result.scalar_one_or_none()
-    if not lobby:
-        raise HTTPException(status_code=404, detail="Lobby not found")
-    if lobby.host_user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the host can start the game")
-    if lobby.status != "waiting":
-        raise HTTPException(status_code=400, detail="Game already started or finished")
+        db.add(mc)
+    await db.commit() 
+    
 
-    lobby.status = "playing"
-    lobby.started_at = datetime.utcnow()
-    await db.commit()
-    await db.refresh(lobby)
-
-    await broadcast(lobby_id, {"event": "start", "by": str(current_user.id)})
-
-    asyncio.create_task(end_game_after(lobby_id, lobby.match_time_sec))
-
-    return lobby

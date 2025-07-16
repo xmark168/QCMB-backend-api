@@ -30,7 +30,7 @@ async def websocket_lobby (ws: WebSocket,
     Lobby.id == lobby_id
 ))      
     lobby = result.scalar_one_or_none()
-    print(lobby)
+
     if lobby is None:
         await ws.close(code=1008)
         return
@@ -69,3 +69,5 @@ async def websocket_lobby (ws: WebSocket,
             await db.commit()
             await db.refresh(lobby)
         await broadcast(lobby_id, {"event": "leave", "user": username})
+        
+        

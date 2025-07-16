@@ -167,8 +167,8 @@ class Match_Card(Base):
     order_no = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
-    lobby = relationship("Lobby", back_populates="match_cards")
-    question = relationship("Question", back_populates="match_cards")
+    lobby = relationship("Lobby")
+    question = relationship("Question")
     owner = relationship("User")
 
 class MatchPlayerItem(Base):
