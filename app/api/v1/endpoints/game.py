@@ -86,6 +86,7 @@ async def submit_answer(
         max_res = await db.execute(
             select(func.coalesce(func.max(Match_Card.order_no), 0))
             .where(Match_Card.match_id == match_id)
+            .options(selectinload(Match_Card.question)).options(selectinload(Match_Card.item))
         )
         current_max = max_res.scalar_one()
         question = q_rand.scalar_one_or_none()
@@ -117,7 +118,7 @@ async def submit_answer(
                             Match_Card.card_state == "pending",
                             Match_Card.owner_user_id == current_user.id)
                             )
-                
+                .options(selectinload(Match_Card.question))
                 .order_by(func.random())
                 .limit(1)
             )
@@ -235,10 +236,9 @@ async def bring_items_to_match(
         db.add(match_player_item)
 
         inventory.quantity -= item.quantity
-        
         if available_cards:
+         for _ in range(item.quantity):
             selected_card = random.choice(available_cards)
-            # Update the Match_Card with the item and owner
             await db.execute(
                 update(Match_Card)
                 .where(Match_Card.id == selected_card.id)
