@@ -141,7 +141,7 @@ async def join_lobby(
         match_id=payload.match_id,
         user_id=currentUser.id,
         score=0,
-        cards_left=10,
+        cards_left=lobby.initial_hand_size,
         tokens_earned=0,
         created_at=datetime.utcnow(),
         status="waiting"  # Trạng thái ban đầu của người chơi
@@ -188,7 +188,7 @@ async def join_lobby_by_code(
         match_id=lobby.id,
         user_id=current_user.id,
         score=0,
-        cards_left=10,
+        cards_left=lobby.initial_hand_size,
         tokens_earned=0,
         created_at=datetime.utcnow(),
         status="waiting"
